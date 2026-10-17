@@ -111,3 +111,68 @@ Commit: `task 6: cleanup`
 - Daha fazla anomali (10+)
 - AI görselleri ile şekilleri değiştirme
 - Kat sayısına göre zorluk artışı
+
+- 
+## [ ] GÖREV 7: Görsel temel (AI koridor görseli + atmosfer)
+Goal: replace the flat shape room with the real corridor image and add a code-only horror atmosphere. Layout/visual task. Game logic (lives, streak, floors, input lock) must NOT change behavior.
+
+### Step 0: Housekeeping
+1. `git pull`.
+2. Make sure `.gitignore` contains `node_modules` and `dist`. If they are tracked: `git rm -r --cached node_modules dist`.
+3. Update AGENTS.md:
+   - Rule 3 becomes: "Image files are allowed ONLY under public/assets/ and must be loaded in BootScene preload. Audio stays WebAudio-only. Everything else is still drawn with code."
+   - Rule 4 becomes: "No setInterval/setTimeout. `scene.time.addEvent` and tween `onComplete` are allowed for transitions and the grain effect only."
+   - Rule 5 add: "Full-screen overlay tweens (alpha) are allowed."
+4. Commit: `task 7a: housekeeping`
+
+### Step 1: Find and prepare the image
+1. List `public/assets/`. The image is the file there that is not `.gitkeep` (png/jpg/jpeg/webp). Do not guess a name.
+2. Report its pixel size and file size. Do NOT add new dependencies to resize it.
+3. Rename it with `git mv` to `corridor_normal.<same extension>` (lowercase, no spaces).
+4. If the file is larger than 1.5 MB, do NOT modify it; just mention it in the report.
+
+### Step 2: Load and display it
+1. BootScene: `this.load.image('corridor_normal', import.meta.env.BASE_URL + 'assets/corridor_normal.<ext>')`. Show a simple "Yükleniyor..." text during load; start MenuScene on complete. If loading fails, show a visible red error text with the path (never fail silently).
+2. In `src/config/layout.js`, define fixed constants: GAME_W=720, GAME_H=1280, depths:
+   BG=0, DARKNESS=10, GRAIN=11, VIGNETTE=12, HUD=20, BUTTONS=20, FEEDBACK=30, OVERLAY=40.
+3. GameScene: the image is full-screen background centered at (360, 640). Use "cover" scaling: `scale = Math.max(720 / tex.width, 1280 / tex.height)`. Never distort the aspect ratio. Store `baseScale`.
+4. Delete ALL old shape-drawing code (floor, wall, carpet, painting, eyes, clock, doors, elevator frame, buildRoom shapes). Keep `buildRoom(scene)` but it now returns:
+   `{ background, darkness, grain, vignette }`
+5. No element may overlap the HUD incorrectly: HUD sits ON TOP of the image (depth 20), so each HUD text needs readability (see Step 4).
+
+### Step 3: Atmosphere (all code, created once per scene start)
+1. **Darkness overlay:** full-screen black rectangle, base alpha 0.15, depth DARKNESS. Store base alpha constant `DARKNESS_BASE = 0.15`.
+2. **Vignette:** generate ONCE a canvas texture `vignette` (720x1280) with a radial gradient: transparent center, black alpha ~0.75 at edges. Use `this.textures.createCanvas` in BootScene only if the key does not exist yet (restart must not recreate it). Display it full-screen at depth VIGNETTE.
+3. **Film grain:** generate ONCE a 128x128 noise canvas texture `grain` in BootScene (random gray pixels with random alpha, guarded by the same exists-check). Show it as a full-screen `tileSprite`, alpha 0.08, depth GRAIN. Every 90 ms (`scene.time.addEvent`, loop, bound to the scene so it dies on shutdown) set its tilePosition to a random pair from a fixed array of 6 offsets. Positions must come from the fixed array, not Math.random.
+4. **Slow zoom:** at the start of every floor, tween the background scale from `baseScale` to `baseScale * 1.04` over 2500 ms (Sine.easeOut). Reset to `baseScale` in `resetRoom`.
+5. **Flicker anomaly (the only anomaly working this task):** tween `room.darkness.alpha` between `DARKNESS_BASE` and 0.7, duration 120, yoyo, repeat -1. `resetRoom` must kill this tween and restore alpha to `DARKNESS_BASE`.
+
+### Step 4: HUD and buttons readability on top of the image
+1. Top: "Floor N" and hearts stay at the same fixed coordinates, but add a dark gradient strip behind them (rectangle 720x220 at top, black alpha 0.55, depth HUD-1). Hearts clearly below "Floor N". Add a text stroke (black, 4px) to all HUD texts.
+2. Tutorial text: put it on a dark semi-transparent strip (black alpha 0.6) at a fixed y around 1000-1060, centered, never over the main scene center.
+3. Buttons ÇIK / KAPAT at y ~1160: keep size about 220x80, gap between them. Style: dark fill (0x000000 alpha 0.55), 3px border (green 0x2ea35a for ÇIK, red 0xb53a35 for KAPAT), white bold text. Pressed state: brief alpha tween 0.55 -> 0.9 -> 0.55.
+4. Feedback texts "DOĞRU"/"YANLIŞ" and the game over / win overlays must appear above everything (depth FEEDBACK / OVERLAY) with stroke for readability.
+
+### Step 5: Anomaly system adjustments (temporary, because shapes are gone)
+1. In `anomalies.js` add an `enabled` boolean to each entry. Set `flicker: enabled true`; `eyes, carpetReversed, extraDoor, clockReverse: enabled false` with a comment: "needs image variants, see Task 8".
+2. Anomaly selection must only pick entries with `enabled: true`. The "no same anomaly twice in a row" rule must not crash when only one anomaly is enabled (allow repeating in that case).
+3. `floorConfigs.js` Floor 2: anomalyId = "flicker", tutorialText = "Bu MIMIC. Işık titriyor, fark ettin mi? KAPAT'a bas."
+4. `resetRoom(room)` must restore EVERYTHING (darkness alpha, background scale, tweens) at the start of every floor.
+
+### Step 6: Cleanup rules
+- Scene shutdown must destroy the objects and stop the grain timer and all tweens. Textures `vignette`, `grain`, `corridor_normal` stay in the texture manager (do not remove them).
+- Restart the scene 5 times: no duplicated overlay, no double grain timer, no stacked tweens.
+- No file over ~200 lines. If GameScene gets long, move atmosphere code to `src/ui/Atmosphere.js` (allowed, add to the Structure section in AGENTS.md).
+- Do NOT add sound changes, new anomalies, timers, or any logic change.
+
+### Done when
+- Game boots, Menu -> Game shows the corridor photo full-screen with vignette, grain, and slow zoom.
+- HUD, tutorial text, and buttons are clearly readable over the image on a phone.
+- Floor 1 is clean. Floor 2 flickers. A full run (correct/wrong/lives/game over/restart) still works exactly as before.
+- `npm run build` passes.
+
+### Report (required)
+List: image filename, pixel size, file size in MB, the final y/height of HUD strip, tutorial strip and buttons, any warning (large file, aspect mismatch), and what was left disabled.
+Commit: `task 7: image background and atmosphere`
+
+
