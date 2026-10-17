@@ -1,20 +1,21 @@
 import Phaser from 'phaser';
-import { DEPTH, LAYOUT } from '../config/layout.js';
+import { ANOMALY_SLOTS, DEPTH, LAYOUT } from '../config/layout.js';
 import { FloorManager } from '../managers/FloorManager.js';
 import { LivesManager } from '../managers/LivesManager.js';
 import { Hud } from '../ui/Hud.js';
 import { createRoom } from '../ui/RoomBuilder.js';
-import { ANOMALIES, resetRoom } from '../config/anomalies.js';
+import { ANOMALIES, pickAnomaly, resetRoom } from '../config/anomalies.js';
 import { Elevator } from '../ui/Elevator.js';
-
+import { FloorControls } from '../ui/FloorControls.js';
 export class GameScene extends Phaser.Scene {
   constructor() {
     super('GameScene');
   }
 
   create() {
+    this.testParams = this.readTestParams();
     this.builtObjects = [];
-    this.floorManager = new FloorManager();
+    this.floorManager = new FloorManager(this.testParams.floor);
     this.livesManager = new LivesManager();
     this.streak = 0;
     this.bestStreak = 0;
@@ -23,8 +24,7 @@ export class GameScene extends Phaser.Scene {
     this.audioManager?.startAmbience();
     this.inputLocked = true;
     this.room = createRoom(this);
-    this.room.background.setDepth(DEPTH.BG);
-    [this.room.background, this.room.darkness, this.room.grain, this.room.vignette]
+    [this.room.world, this.room.darkness, this.room.grain, this.room.vignette]
       .forEach((object) => this.track(object));
     this.track(this.room.gradient);
     this.track(this.room.colorGrade);
@@ -32,6 +32,7 @@ export class GameScene extends Phaser.Scene {
     this.room.grain.setScrollFactor(0);
     this.room.darkness.setScrollFactor(0);
     this.room.vignette.setScrollFactor(0);
+    this.createDebugSlots();
     this.elevator = new Elevator(this, (object) => this.track(object));
     this.hud = new Hud(this);
     this.tutorialLabel = this.track(this.add.text(LAYOUT.tutorial.x, LAYOUT.tutorial.y, '', {
@@ -43,8 +44,7 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(DEPTH.FEEDBACK).setScrollFactor(0).setStroke('#17130d', 4));
     this.mimicFlash = this.track(this.add.rectangle(360, 640, 720, 1280, 0xa60000, 0)
       .setDepth(DEPTH.FEEDBACK - 1).setScrollFactor(0));
-    this.createButton('ÇIK', LAYOUT.buttons.leftX, 'exit');
-    this.createButton('KAPAT', LAYOUT.buttons.rightX, 'close');
+    this.controls = new FloorControls(this, (choice) => this.answer(choice));
     this.events.once('shutdown', this.cleanup, this);
     this.showFloor();
   }
@@ -54,18 +54,25 @@ export class GameScene extends Phaser.Scene {
     return object;
   }
 
-  createButton(label, x, answer) {
-    const { y, width, height } = LAYOUT.buttons;
-    const button = this.track(this.add.rectangle(x, y, width, height, 0x000000, 0.55)
-      .setStrokeStyle(2, 0x8a7440).setDepth(DEPTH.BUTTONS).setScrollFactor(0)
-      .setInteractive({ useHandCursor: true }));
-    this.track(this.add.text(x, y, label, {
-      fontFamily: 'Georgia, serif', fontSize: '32px', color: '#c9b27a', fontStyle: 'bold',
-      shadow: { offsetX: 1, offsetY: 2, color: '#000000', blur: 4, fill: true },
-    }).setOrigin(0.5).setDepth(DEPTH.BUTTONS).setScrollFactor(0));
-    button.on('pointerdown', () => {
-      this.tweens.add({ targets: button, alpha: 0.9, duration: 90, yoyo: true });
-      this.answer(answer);
+  readTestParams() {
+    const query = new URLSearchParams(window.location.search);
+    const parsedFloor = Number.parseInt(query.get('floor') || '1', 10);
+    const floor = Number.isFinite(parsedFloor) ? Math.max(1, parsedFloor) : 1;
+    return { floor, anomaly: query.get('anomaly'), debug: query.get('debug') === '1' };
+  }
+
+  createDebugSlots() {
+    if (!this.testParams.debug) return;
+    Object.values(ANOMALY_SLOTS).forEach((slot) => {
+      const { x, y } = this.room.toWorld(slot);
+      const cross = this.add.graphics().lineStyle(3, 0xff00ff, 1);
+      cross.beginPath();
+      cross.moveTo(x - 10, y);
+      cross.lineTo(x + 10, y);
+      cross.moveTo(x, y - 10);
+      cross.lineTo(x, y + 10);
+      cross.strokePath();
+      this.room.world.add(cross);
     });
   }
 
@@ -73,12 +80,15 @@ export class GameScene extends Phaser.Scene {
     const config = this.floorManager.currentConfig;
     this.audioManager?.stopLightHum();
     resetRoom(this.room);
+    this.controls.hide();
     this.elevator.reset();
     this.inputLocked = true;
     this.addBreathing();
     if (config.isMimic) {
-      const anomalyId = config.anomalyId || pickAnomaly(this.lastAnomalyId);
+      const forced = ANOMALIES[this.testParams.anomaly]?.enabled ? this.testParams.anomaly : null;
+      const anomalyId = forced || config.anomalyId || pickAnomaly(this.lastAnomalyId);
       ANOMALIES[anomalyId].apply(this, this.room);
+      this.playAnomalySound(ANOMALIES[anomalyId].sound);
       this.lastAnomalyId = anomalyId;
     }
     this.audioManager?.startAmbience();
@@ -89,9 +99,9 @@ export class GameScene extends Phaser.Scene {
     this.tutorialLabel.setText(config.tutorialText).setAlpha(0);
     if (config.tutorialText) this.tweens.add({ targets: this.tutorialLabel, alpha: 1, duration: 300 });
     this.feedbackLabel.setText('').setScale(1).setAlpha(0);
-    this.room.tweens.push(this.tweens.add({ targets: this.room.background,
-      scale: this.room.baseScale * 1.01, duration: 3000, yoyo: true,
-      repeat: -1, ease: 'Sine.easeInOut' }));
+    this.room.tweens.push(this.tweens.add({ targets: this.room.world,
+      scale: this.room.baseScale * 1.04, duration: 2500, yoyo: true,
+      repeat: -1, ease: 'Sine.easeOut' }));
     this.openDoors();
   }
 
@@ -101,12 +111,16 @@ export class GameScene extends Phaser.Scene {
         this.mimicFlash.setAlpha(0.42);
         this.tweens.add({ targets: this.mimicFlash, alpha: 0, duration: 200 });
       }
-      this.inputLocked = false;
+      this.controls.reveal(this.floorManager.currentConfig.timeLimitMs, () => {
+        this.inputLocked = false;
+      }, () => this.answer('timeout'));
     });
   }
 
-  closeDoors(onClosed) {
-    this.elevator.close(onClosed);
+  playAnomalySound(sound) {
+    if (sound === 'buzz') this.audioManager?.buzz();
+    if (sound === 'doorSlide') this.audioManager?.doorSlide(0.025);
+    if (sound === 'heartbeat') this.audioManager?.heartbeat(0.035);
   }
 
   addBreathing() {
@@ -121,6 +135,7 @@ export class GameScene extends Phaser.Scene {
   answer(choice) {
     if (this.inputLocked) return;
     this.inputLocked = true;
+    this.controls.stopTimer();
     const config = this.floorManager.currentConfig;
     const correct = (choice === 'exit' && !config.isMimic)
       || (choice === 'close' && config.isMimic);
@@ -156,7 +171,7 @@ export class GameScene extends Phaser.Scene {
       targets: this.feedbackLabel, alpha: 1, duration: 100,
       onComplete: () => this.tweens.add({
         targets: this.feedbackLabel, alpha: 0, scale: 1.04, duration: 200,
-        onComplete: () => this.closeDoors(() => this.finishFloor(config.floor)),
+        onComplete: () => this.elevator.close(() => this.finishFloor(config.floor)),
       }),
     });
   }
@@ -182,18 +197,4 @@ export class GameScene extends Phaser.Scene {
     this.builtObjects.forEach((object) => object.destroy());
     this.builtObjects = [];
   }
-}
-
-function pickAnomaly(previousId) {
-  let candidates = Object.entries(ANOMALIES).filter(([, anomaly]) => anomaly.enabled);
-  const different = candidates.filter(([id]) => id !== previousId);
-  if (different.length) candidates = different;
-  if (!candidates.length) candidates = Object.entries(ANOMALIES);
-  const totalWeight = candidates.reduce((sum, [, anomaly]) => sum + anomaly.weight, 0);
-  let choice = Math.random() * totalWeight;
-  for (const [id, anomaly] of candidates) {
-    choice -= anomaly.weight;
-    if (choice < 0) return id;
-  }
-  return candidates[candidates.length - 1][0];
 }

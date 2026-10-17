@@ -1,6 +1,12 @@
 export const GAME_W = 720;
 export const GAME_H = 1280;
 export const DARKNESS_BASE = 0.15;
+export const ANOMALY_SLOTS = {
+  PAINTING: { nx: 0.08, ny: 0.33 },
+  CLOCK: { nx: 0.96, ny: 0.31 },
+  DOOR_RIGHT: { nx: 0.82, ny: 0.54 },
+  FAR_END: { nx: 0.5, ny: 0.47 },
+};
 export const DUST_POINTS = [
   [32, 260, 6000], [84, 510, 7200], [128, 900, 8100], [176, 340, 9200],
   [214, 740, 6800], [260, 1120, 10400], [302, 430, 7600], [348, 830, 9800],

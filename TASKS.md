@@ -222,7 +222,7 @@ Menu -> Game: drone starts after "Başla", doors open with ding at each floor, d
 List files changed, how to test, anything uncertain.
 Commit: `task 8: feel pass`
 
-## [ ] GÖREV 9: Anomali avı (görünür anomaliler, süre baskısı, buton gecikmesi)
+## [x] GÖREV 9: Anomali avı (görünür anomaliler, süre baskısı, buton gecikmesi)
 Gameplay pass. Keep lives/streak/floor/input-lock logic intact, only extend it. Do Task 8b first if it is still `[ ]`.
 
 ### Step 1: World container (so overlays follow the photo)

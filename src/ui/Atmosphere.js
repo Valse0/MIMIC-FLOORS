@@ -5,6 +5,31 @@ export function createAtmosphereTextures(scene) {
   createVignette(scene);
   createGrain(scene);
   createHudGradient(scene);
+  createFigure(scene);
+}
+function createFigure(scene) {
+  if (scene.textures.exists('figure')) return;
+  const texture = scene.textures.createCanvas('figure', 36, 110);
+  const context = texture.getContext();
+  const gradient = context.createRadialGradient(18, 55, 4, 18, 55, 55);
+  gradient.addColorStop(0, 'rgba(0,0,0,0.96)');
+  gradient.addColorStop(0.72, 'rgba(0,0,0,0.8)');
+  gradient.addColorStop(1, 'rgba(0,0,0,0)');
+  context.fillStyle = gradient;
+  context.beginPath();
+  context.arc(18, 17, 13, 0, Math.PI * 2);
+  context.fill();
+  context.fillRect(7, 28, 22, 64);
+  context.beginPath();
+  context.moveTo(7, 78);
+  context.lineTo(1, 108);
+  context.lineTo(15, 108);
+  context.lineTo(18, 82);
+  context.lineTo(22, 108);
+  context.lineTo(35, 108);
+  context.lineTo(29, 78);
+  context.fill();
+  texture.refresh();
 }
 
 function createHudGradient(scene) {
@@ -49,9 +74,11 @@ function createGrain(scene) {
 }
 
 export function buildRoom(scene) {
-  const background = scene.add.image(360, 640, 'corridor_normal').setDepth(DEPTH.BG);
+  const world = scene.add.container(360, 640).setDepth(DEPTH.BG);
+  const background = scene.add.image(0, 0, 'corridor_normal');
+  world.add(background);
   const baseScale = Math.max(GAME_W / background.width, GAME_H / background.height);
-  background.setScale(baseScale);
+  world.setScale(baseScale);
   const darkness = scene.add.rectangle(360, 640, GAME_W, GAME_H, 0x000000, DARKNESS_BASE)
     .setDepth(DEPTH.DARKNESS);
   const grain = scene.add.tileSprite(360, 640, GAME_W, GAME_H, 'grain')
@@ -74,12 +101,9 @@ export function buildRoom(scene) {
     offsetIndex = (offsetIndex + 1 + Math.floor(Math.random() * 5)) % offsets.length;
     grain.setTilePosition(offsets[offsetIndex].x, offsets[offsetIndex].y);
   } });
-  return { background, baseScale, darkness, grain, vignette, gradient, colorGrade, dust, grainEvent, tweens: [] };
-}
-
-export function resetRoom(room) {
-  room.tweens.forEach((tween) => tween.stop());
-  room.tweens = [];
-  room.background.setScale(room.baseScale);
-  room.darkness.setAlpha(DARKNESS_BASE);
+  return { world, background, baseScale, darkness, grain, vignette, gradient, colorGrade,
+    dust, grainEvent, tweens: [], anomalyObjects: [], toWorld: (slot) => ({
+      x: (slot.nx - 0.5) * background.width,
+      y: (slot.ny - 0.5) * background.height,
+    }) };
 }

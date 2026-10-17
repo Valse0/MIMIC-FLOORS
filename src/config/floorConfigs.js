@@ -1,24 +1,29 @@
+export const MIMIC_CHANCE = 0.35;
+
 export function getFloorConfig(floorNumber) {
   if (floorNumber === 1) {
     return {
       floor: 1,
       isMimic: false,
       anomalyId: null,
-      tutorialText: "Bu NORMAL koridor. Her şey düzgün. ÇIK'a bas.",
+      tutorialText: "Bu koridor NORMAL. Dikkatle bak, sonra NORMAL'e bas.",
+      timeLimitMs: 0,
     };
   }
   if (floorNumber === 2) {
     return {
       floor: 2,
       isMimic: true,
-      anomalyId: 'flicker',
-      tutorialText: "Bu MIMIC. Işık titriyor, fark ettin mi? KAPAT'a bas.",
+      anomalyId: 'figure',
+      tutorialText: "Bir şey var. Koridorun sonuna bak. ANOMALİ'ye bas.",
+      timeLimitMs: 0,
     };
   }
   return {
     floor: floorNumber,
-    isMimic: Math.random() < 0.2,
+    isMimic: Math.random() < MIMIC_CHANCE,
     anomalyId: null,
     tutorialText: '',
+    timeLimitMs: 7000,
   };
 }

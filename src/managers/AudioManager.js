@@ -77,12 +77,12 @@ export class AudioManager {
   wrong() { this.playTone('sawtooth', 150, 0.25, 0, 0.06); }
   buzz() { this.wrong(); }
 
-  heartbeat() {
-    this.playTone('sine', 60, 0.08, 0, 0.07);
-    this.playTone('sine', 60, 0.08, 0.15, 0.07);
+  heartbeat(volume = 0.07) {
+    this.playTone('sine', 60, 0.08, 0, volume);
+    this.playTone('sine', 60, 0.08, 0.15, volume);
   }
 
-  doorSlide() {
+  doorSlide(volume = 0.08) {
     if (!this.context) return;
     try {
       const length = Math.floor(this.context.sampleRate * 0.45);
@@ -95,7 +95,7 @@ export class AudioManager {
       source.buffer = buffer;
       filter.type = 'lowpass';
       filter.frequency.value = 700;
-      gain.gain.setValueAtTime(0.08, this.context.currentTime);
+      gain.gain.setValueAtTime(volume, this.context.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.45);
       source.connect(filter);
       filter.connect(gain);
