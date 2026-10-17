@@ -2,8 +2,9 @@ export const LAYOUT = {
   width: 720,
   height: 1280,
   centerX: 360,
-  floorLabelY: 75,
-  statusY: 1010,
+  tutorial: { x: 360, y: 965, width: 620 },
+  feedback: { x: 360, y: 1035 },
+  hud: { floorX: 360, floorY: 65, heartXs: [270, 315, 360], heartY: 128, streakX: 550, streakY: 128 },
   carpetStripe: { inset: 18, firstY: 65, spacing: 100, height: 12 },
   paintingEyes: { leftX: 40, rightX: 80, y: 52, radius: 8 },
   clockHand: { length: 30, width: 4 },
@@ -18,5 +19,9 @@ export const LAYOUT = {
   mainDoor: { x: 275, y: 365, width: 170, height: 380 },
   extraDoor: { x: 475, y: 420, width: 105, height: 300 },
   frame: { x: 55, y: 125, width: 610, height: 865 },
-  buttons: { y: 1100, width: 220, height: 90, leftX: 235, rightX: 485 },
+  buttons: { y: 1140, width: 220, height: 90, leftX: 235, rightX: 485 },
+  overlay: {
+    centerX: 360, centerY: 640, width: 720, height: 1280,
+    titleY: 470, detailY: 570, buttonY: 700, buttonWidth: 240, buttonHeight: 84,
+  },
 };

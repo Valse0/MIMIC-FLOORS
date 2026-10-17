@@ -39,7 +39,7 @@ Commit: `task 2: static corridor`
 
 ---
 
-## [ ] GÖREV 3: Oyun mantığı, can, streak
+## [x] GÖREV 3: Oyun mantığı, can, streak
 - `floorConfigs.js`: export `getFloorConfig(floorNumber)` returning `{ floor, isMimic, anomalyId, tutorialText }`.
   - Floor 1: always NORMAL, tutorialText: "Bu NORMAL koridor. Her şey düzgün. ÇIK'a bas."
   - Floor 2: always MIMIC, tutorialText: "Bu MIMIC. Bir şey yanlış, fark ettin mi? KAPAT'a bas." (anomalyId: "eyes" placeholder, effect comes in Task 4)
