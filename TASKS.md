@@ -175,7 +175,7 @@ Goal: replace the flat shape room with the real corridor image and add a code-on
 List: image filename, pixel size, file size in MB, the final y/height of HUD strip, tutorial strip and buttons, any warning (large file, aspect mismatch), and what was left disabled.
 Commit: `task 7: image background and atmosphere`
 
-## [ ] GÖREV 8: His katmanı (ses, asansör kapıları, arayüz uyumu, canlılık)
+## [x] GÖREV 8: His katmanı (ses, asansör kapıları, arayüz uyumu, canlılık)
 Feel pass only. Do NOT change game logic (lives, streak, floors, input lock, scoring).
 
 ### Step 1: AudioManager (WebAudio only, all in try/catch)

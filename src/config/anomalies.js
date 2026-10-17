@@ -1,6 +1,7 @@
 import { DARKNESS_BASE } from './layout.js';
 
 function flicker(scene, room) {
+  scene.audioManager?.startLightHum();
   room.tweens.push(scene.tweens.add({
     targets: room.darkness,
     alpha: 0.7,

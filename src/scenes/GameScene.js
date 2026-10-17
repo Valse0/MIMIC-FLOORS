@@ -5,6 +5,7 @@ import { LivesManager } from '../managers/LivesManager.js';
 import { Hud } from '../ui/Hud.js';
 import { createRoom } from '../ui/RoomBuilder.js';
 import { ANOMALIES, resetRoom } from '../config/anomalies.js';
+import { Elevator } from '../ui/Elevator.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -19,23 +20,31 @@ export class GameScene extends Phaser.Scene {
     this.bestStreak = 0;
     this.lastAnomalyId = null;
     this.audioManager = this.registry.get('audioManager');
+    this.audioManager?.startAmbience();
     this.inputLocked = true;
-    this.room = buildRoom(this);
+    this.room = createRoom(this);
     this.room.background.setDepth(DEPTH.BG);
     [this.room.background, this.room.darkness, this.room.grain, this.room.vignette]
       .forEach((object) => this.track(object));
-    this.track(this.add.rectangle(360, 110, 720, 220, 0x000000, 0.55).setDepth(DEPTH.HUD - 1));
+    this.track(this.room.gradient);
+    this.track(this.room.colorGrade);
+    this.room.dust.forEach(({ particle }) => this.track(particle));
+    this.room.grain.setScrollFactor(0);
+    this.room.darkness.setScrollFactor(0);
+    this.room.vignette.setScrollFactor(0);
+    this.elevator = new Elevator(this, (object) => this.track(object));
     this.hud = new Hud(this);
-    this.track(this.add.rectangle(360, 1030, 720, 100, 0x000000, 0.6).setDepth(DEPTH.HUD - 1));
     this.tutorialLabel = this.track(this.add.text(LAYOUT.tutorial.x, LAYOUT.tutorial.y, '', {
-      fontFamily: 'Arial, sans-serif', fontSize: '24px', color: '#ffffff',
+      fontFamily: 'Georgia, serif', fontSize: '24px', color: '#d8c9a0',
       align: 'center', wordWrap: { width: LAYOUT.tutorial.width },
-    }).setOrigin(0.5).setDepth(DEPTH.HUD).setStroke('#000000', 4));
+    }).setOrigin(0.5).setDepth(DEPTH.HUD).setScrollFactor(0).setStroke('#17130d', 4).setAlpha(0));
     this.feedbackLabel = this.track(this.add.text(LAYOUT.feedback.x, LAYOUT.feedback.y, '', {
-      fontFamily: 'Arial, sans-serif', fontSize: '32px', color: '#ffffff', fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(DEPTH.FEEDBACK).setStroke('#000000', 4));
-    this.createButton('ÇIK', LAYOUT.buttons.leftX, 0x279b56, 'exit');
-    this.createButton('KAPAT', LAYOUT.buttons.rightX, 0xb33a35, 'close');
+      fontFamily: 'Georgia, serif', fontSize: '26px', color: '#c9b27a',
+    }).setOrigin(0.5).setDepth(DEPTH.FEEDBACK).setScrollFactor(0).setStroke('#17130d', 4));
+    this.mimicFlash = this.track(this.add.rectangle(360, 640, 720, 1280, 0xa60000, 0)
+      .setDepth(DEPTH.FEEDBACK - 1).setScrollFactor(0));
+    this.createButton('ÇIK', LAYOUT.buttons.leftX, 'exit');
+    this.createButton('KAPAT', LAYOUT.buttons.rightX, 'close');
     this.events.once('shutdown', this.cleanup, this);
     this.showFloor();
   }
@@ -45,13 +54,15 @@ export class GameScene extends Phaser.Scene {
     return object;
   }
 
-  createButton(label, x, color, answer) {
+  createButton(label, x, answer) {
     const { y, width, height } = LAYOUT.buttons;
     const button = this.track(this.add.rectangle(x, y, width, height, 0x000000, 0.55)
-      .setStrokeStyle(3, color).setDepth(DEPTH.BUTTONS).setInteractive({ useHandCursor: true }));
+      .setStrokeStyle(2, 0x8a7440).setDepth(DEPTH.BUTTONS).setScrollFactor(0)
+      .setInteractive({ useHandCursor: true }));
     this.track(this.add.text(x, y, label, {
-      fontFamily: 'Arial, sans-serif', fontSize: '32px', color: '#ffffff', fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(DEPTH.BUTTONS).setStroke('#000000', 4));
+      fontFamily: 'Georgia, serif', fontSize: '32px', color: '#c9b27a', fontStyle: 'bold',
+      shadow: { offsetX: 1, offsetY: 2, color: '#000000', blur: 4, fill: true },
+    }).setOrigin(0.5).setDepth(DEPTH.BUTTONS).setScrollFactor(0));
     button.on('pointerdown', () => {
       this.tweens.add({ targets: button, alpha: 0.9, duration: 90, yoyo: true });
       this.answer(answer);
@@ -60,29 +71,51 @@ export class GameScene extends Phaser.Scene {
 
   showFloor() {
     const config = this.floorManager.currentConfig;
+    this.audioManager?.stopLightHum();
     resetRoom(this.room);
+    this.elevator.reset();
     this.inputLocked = true;
+    this.addBreathing();
     if (config.isMimic) {
       const anomalyId = config.anomalyId || pickAnomaly(this.lastAnomalyId);
       ANOMALIES[anomalyId].apply(this, this.room);
       this.lastAnomalyId = anomalyId;
     }
+    this.audioManager?.startAmbience();
+    if (this.livesManager.lives === 1) this.audioManager?.heartbeat();
     this.hud.updateFloor(config.floor);
     this.hud.updateLives(this.livesManager.lives);
     this.hud.updateStreak(this.streak);
-    this.tutorialLabel.setText(config.tutorialText);
-    this.feedbackLabel.setText('').setScale(1);
-    this.tweens.add({ targets: this.room.background, scale: this.room.baseScale * 1.04,
-      duration: 2500, ease: 'Sine.easeOut' });
+    this.tutorialLabel.setText(config.tutorialText).setAlpha(0);
+    if (config.tutorialText) this.tweens.add({ targets: this.tutorialLabel, alpha: 1, duration: 300 });
+    this.feedbackLabel.setText('').setScale(1).setAlpha(0);
+    this.room.tweens.push(this.tweens.add({ targets: this.room.background,
+      scale: this.room.baseScale * 1.01, duration: 3000, yoyo: true,
+      repeat: -1, ease: 'Sine.easeInOut' }));
     this.openDoors();
   }
 
   openDoors() {
-    this.time.addEvent({ delay: 400, callback: () => { this.inputLocked = false; } });
+    this.elevator.open(() => {
+      if (this.floorManager.currentConfig.isMimic) {
+        this.mimicFlash.setAlpha(0.42);
+        this.tweens.add({ targets: this.mimicFlash, alpha: 0, duration: 200 });
+      }
+      this.inputLocked = false;
+    });
   }
 
   closeDoors(onClosed) {
-    this.time.addEvent({ delay: 400, callback: onClosed });
+    this.elevator.close(onClosed);
+  }
+
+  addBreathing() {
+    const camera = this.cameras.main;
+    camera.setScroll(-4, -3);
+    this.room.tweens.push(this.tweens.add({ targets: camera, scrollX: 4,
+      duration: 3200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }));
+    this.room.tweens.push(this.tweens.add({ targets: camera, scrollY: 3,
+      duration: 4100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }));
   }
 
   answer(choice) {
@@ -94,8 +127,8 @@ export class GameScene extends Phaser.Scene {
     if (correct) {
       this.streak += 1;
       this.bestStreak = Math.max(this.bestStreak, this.streak);
-      this.feedbackLabel.setText('DOĞRU').setColor('#42d66b');
-      this.audioManager?.ding();
+      this.feedbackLabel.setText('DOĞRU').setColor('#c9b27a').setAlpha(0);
+      this.audioManager?.correct();
       this.cameras.main.shake(100, 0.003);
       if ([3, 5, 10].includes(this.streak)) {
         this.cameras.main.flash(130, 255, 225, 80);
@@ -105,8 +138,9 @@ export class GameScene extends Phaser.Scene {
       this.streak = 0;
       this.livesManager.loseLife();
       this.hud.updateLives(this.livesManager.lives);
-      this.feedbackLabel.setText('YANLIŞ').setColor('#f04c4c');
-      this.audioManager?.buzz();
+      if (this.livesManager.lives === 1) this.audioManager?.heartbeat();
+      this.feedbackLabel.setText('YANLIŞ').setColor('#c9b27a').setAlpha(0);
+      this.audioManager?.wrong();
       this.cameras.main.flash(150, 255, 0, 0);
       try {
         if (navigator.vibrate) navigator.vibrate(100);
@@ -115,55 +149,39 @@ export class GameScene extends Phaser.Scene {
       }
     }
     this.hud.updateStreak(this.streak);
+    if (this.tutorialLabel.alpha > 0) {
+      this.tweens.add({ targets: this.tutorialLabel, alpha: 0, duration: 300 });
+    }
     this.tweens.add({
-      targets: this.feedbackLabel, scale: 1.15, duration: 160, yoyo: true,
-      onComplete: () => this.closeDoors(() => this.finishFloor(config.floor)),
+      targets: this.feedbackLabel, alpha: 1, duration: 100,
+      onComplete: () => this.tweens.add({
+        targets: this.feedbackLabel, alpha: 0, scale: 1.04, duration: 200,
+        onComplete: () => this.closeDoors(() => this.finishFloor(config.floor)),
+      }),
     });
   }
 
   finishFloor(answeredFloor) {
     if (this.livesManager.isDead()) {
-      this.showEndScreen('OYUN BİTTİ', `Ulaşılan kat: ${answeredFloor}   En iyi seri: ${this.bestStreak}`);
+      this.hud.showEndScreen('OYUN BİTTİ', `Ulaşılan kat: ${answeredFloor}   En iyi seri: ${this.bestStreak}`);
       return;
     }
     if (answeredFloor >= 100) {
-      this.showEndScreen('KAZANDIN', `En iyi seri: ${this.bestStreak}`);
+      this.hud.showEndScreen('KAZANDIN', `En iyi seri: ${this.bestStreak}`);
       return;
     }
     this.floorManager.advance();
     this.showFloor();
   }
 
-  showEndScreen(title, detail) {
-    this.inputLocked = true;
-    const { centerX, centerY, width, height, titleY, detailY, buttonY, buttonWidth, buttonHeight } = LAYOUT.overlay;
-    this.track(this.add.rectangle(centerX, centerY, width, height, 0x000000, 0.82)
-      .setDepth(DEPTH.OVERLAY));
-    this.track(this.add.text(centerX, titleY, title, {
-      fontFamily: 'Arial, sans-serif', fontSize: '58px', color: '#ffffff', fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(DEPTH.OVERLAY).setStroke('#000000', 4));
-    this.track(this.add.text(centerX, detailY, detail, {
-      fontFamily: 'Arial, sans-serif', fontSize: '24px', color: '#ffffff', align: 'center',
-      wordWrap: { width: 620 },
-    }).setOrigin(0.5).setDepth(DEPTH.OVERLAY).setStroke('#000000', 4));
-    const button = this.track(this.add.rectangle(centerX, buttonY, buttonWidth, buttonHeight, 0xeeeeee)
-      .setDepth(DEPTH.OVERLAY).setInteractive({ useHandCursor: true }));
-    this.track(this.add.text(centerX, buttonY, 'Tekrar', {
-      fontFamily: 'Arial, sans-serif', fontSize: '36px', color: '#111111',
-    }).setOrigin(0.5).setDepth(DEPTH.OVERLAY));
-    button.on('pointerdown', () => this.scene.restart());
-  }
-
   cleanup() {
     this.tweens.killAll();
+    this.audioManager?.stopAmbience();
+    this.cameras.main.setScroll(0, 0);
     this.room?.grainEvent.remove();
     this.builtObjects.forEach((object) => object.destroy());
     this.builtObjects = [];
   }
-}
-
-function buildRoom(scene) {
-  return createRoom(scene);
 }
 
 function pickAnomaly(previousId) {

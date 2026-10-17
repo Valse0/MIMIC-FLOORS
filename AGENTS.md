@@ -25,7 +25,7 @@ Portrait mobile game (720x1280). Player rides an elevator through floors. Each f
 src/main.js, src/config/{gameConfig,floorConfigs,anomalies,layout}.js,
 src/scenes/{BootScene,MenuScene,GameScene}.js,
 src/managers/{FloorManager,LivesManager,AudioManager}.js,
-src/ui/{Hud,RoomBuilder,Atmosphere}.js
+src/ui/{Hud,RoomBuilder,Atmosphere,Elevator}.js
 Do not create files outside this structure without asking.
 
 ## Phaser config
