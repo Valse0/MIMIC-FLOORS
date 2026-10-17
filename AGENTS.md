@@ -10,9 +10,9 @@ Portrait mobile game (720x1280). Player rides an elevator through floors. Each f
 ## Hard rules
 1. NO physics. Do not enable Arcade/Matter. No gravity, no collisions.
 2. NO random positions. Every visual element has a fixed coordinate defined in code constants.
-3. NO image/audio files. Draw everything with Phaser Graphics/Rectangle/Arc/Text. Generate sounds with WebAudio oscillators.
-4. NO timers or countdowns yet (do not add setInterval/setTimeout game logic).
-5. Animations only via scene.tweens (alpha, scale, x/y, angle) and camera shake/flash. No spritesheets, no skeletons.
+3. Image files are allowed ONLY under public/assets/ and must be loaded in BootScene preload. Audio stays WebAudio-only. Everything else is still drawn with code.
+4. No setInterval/setTimeout. `scene.time.addEvent` and tween `onComplete` are allowed for transitions and the grain effect only.
+5. Animations only via scene.tweens (alpha, scale, x/y, angle), full-screen overlay alpha tweens, and camera shake/flash. No spritesheets, no skeletons.
 6. Game data lives in config files, never hardcoded in scenes:
    - src/config/floorConfigs.js : floor rules, mimic chance, tutorialText
    - src/config/anomalies.js : each anomaly is { weight, apply(scene, room) }
