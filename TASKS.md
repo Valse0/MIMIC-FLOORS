@@ -10,7 +10,7 @@
 
 ---
 
-## [ ] GÖREV 1: Skeleton
+## [X] GÖREV 1: Skeleton
 Scaffold Vite vanilla JS in the current folder, `npm i phaser@3.60.0`, remove Vite demo files, create the folder structure from AGENTS.md (unused files = empty placeholder with a one-line comment).
 - src/main.js + src/config/gameConfig.js: 720x1280, Scale.FIT, CENTER_BOTH, background 0x111111, no physics, scenes Boot, Menu, Game.
 - BootScene starts MenuScene immediately.
