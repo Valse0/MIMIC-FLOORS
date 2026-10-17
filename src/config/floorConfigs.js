@@ -7,16 +7,14 @@ export function getFloorConfig(floorNumber) {
       tutorialText: "Bu NORMAL koridor. Her şey düzgün. ÇIK'a bas.",
     };
   }
-
   if (floorNumber === 2) {
     return {
       floor: 2,
       isMimic: true,
-      anomalyId: 'eyes',
-      tutorialText: 'Bu MIMIC. Bir şey yanlış, fark ettin mi? KAPAT’a bas.',
+      anomalyId: 'flicker',
+      tutorialText: "Bu MIMIC. Işık titriyor, fark ettin mi? KAPAT'a bas.",
     };
   }
-
   return {
     floor: floorNumber,
     isMimic: Math.random() < 0.2,

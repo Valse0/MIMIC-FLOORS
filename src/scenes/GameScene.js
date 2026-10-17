@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { LAYOUT } from '../config/layout.js';
+import { DEPTH, LAYOUT } from '../config/layout.js';
 import { FloorManager } from '../managers/FloorManager.js';
 import { LivesManager } from '../managers/LivesManager.js';
 import { Hud } from '../ui/Hud.js';
@@ -21,14 +21,19 @@ export class GameScene extends Phaser.Scene {
     this.audioManager = this.registry.get('audioManager');
     this.inputLocked = true;
     this.room = buildRoom(this);
+    this.room.background.setDepth(DEPTH.BG);
+    [this.room.background, this.room.darkness, this.room.grain, this.room.vignette]
+      .forEach((object) => this.track(object));
+    this.track(this.add.rectangle(360, 110, 720, 220, 0x000000, 0.55).setDepth(DEPTH.HUD - 1));
     this.hud = new Hud(this);
+    this.track(this.add.rectangle(360, 1030, 720, 100, 0x000000, 0.6).setDepth(DEPTH.HUD - 1));
     this.tutorialLabel = this.track(this.add.text(LAYOUT.tutorial.x, LAYOUT.tutorial.y, '', {
       fontFamily: 'Arial, sans-serif', fontSize: '24px', color: '#ffffff',
       align: 'center', wordWrap: { width: LAYOUT.tutorial.width },
-    }).setOrigin(0.5));
+    }).setOrigin(0.5).setDepth(DEPTH.HUD).setStroke('#000000', 4));
     this.feedbackLabel = this.track(this.add.text(LAYOUT.feedback.x, LAYOUT.feedback.y, '', {
       fontFamily: 'Arial, sans-serif', fontSize: '32px', color: '#ffffff', fontStyle: 'bold',
-    }).setOrigin(0.5));
+    }).setOrigin(0.5).setDepth(DEPTH.FEEDBACK).setStroke('#000000', 4));
     this.createButton('ÇIK', LAYOUT.buttons.leftX, 0x279b56, 'exit');
     this.createButton('KAPAT', LAYOUT.buttons.rightX, 0xb33a35, 'close');
     this.events.once('shutdown', this.cleanup, this);
@@ -42,12 +47,15 @@ export class GameScene extends Phaser.Scene {
 
   createButton(label, x, color, answer) {
     const { y, width, height } = LAYOUT.buttons;
-    const button = this.track(this.add.rectangle(x, y, width, height, color)
-      .setInteractive({ useHandCursor: true }));
+    const button = this.track(this.add.rectangle(x, y, width, height, 0x000000, 0.55)
+      .setStrokeStyle(3, color).setDepth(DEPTH.BUTTONS).setInteractive({ useHandCursor: true }));
     this.track(this.add.text(x, y, label, {
       fontFamily: 'Arial, sans-serif', fontSize: '32px', color: '#ffffff', fontStyle: 'bold',
-    }).setOrigin(0.5));
-    button.on('pointerdown', () => this.answer(answer));
+    }).setOrigin(0.5).setDepth(DEPTH.BUTTONS).setStroke('#000000', 4));
+    button.on('pointerdown', () => {
+      this.tweens.add({ targets: button, alpha: 0.9, duration: 90, yoyo: true });
+      this.answer(answer);
+    });
   }
 
   showFloor() {
@@ -64,33 +72,17 @@ export class GameScene extends Phaser.Scene {
     this.hud.updateStreak(this.streak);
     this.tutorialLabel.setText(config.tutorialText);
     this.feedbackLabel.setText('').setScale(1);
+    this.tweens.add({ targets: this.room.background, scale: this.room.baseScale * 1.04,
+      duration: 2500, ease: 'Sine.easeOut' });
     this.openDoors();
   }
 
   openDoors() {
-    let openedPanels = 0;
-    const onOpened = () => {
-      openedPanels += 1;
-      if (openedPanels === 2) this.inputLocked = false;
-    };
-    const { duration } = LAYOUT.doorMotion;
-    this.tweens.add({ targets: this.room.mainDoor, x: this.room.doorOpenPositions.left.x,
-      duration, ease: 'Sine.easeOut', onComplete: onOpened });
-    this.tweens.add({ targets: this.room.doorRight, x: this.room.doorOpenPositions.right.x,
-      duration, ease: 'Sine.easeOut', onComplete: onOpened });
+    this.time.addEvent({ delay: 400, callback: () => { this.inputLocked = false; } });
   }
 
   closeDoors(onClosed) {
-    let closedPanels = 0;
-    const onClosedPanel = () => {
-      closedPanels += 1;
-      if (closedPanels === 2) onClosed();
-    };
-    const { duration } = LAYOUT.doorMotion;
-    this.tweens.add({ targets: this.room.mainDoor, x: this.room.doorClosedPositions.left.x,
-      duration, ease: 'Sine.easeIn', onComplete: onClosedPanel });
-    this.tweens.add({ targets: this.room.doorRight, x: this.room.doorClosedPositions.right.x,
-      duration, ease: 'Sine.easeIn', onComplete: onClosedPanel });
+    this.time.addEvent({ delay: 400, callback: onClosed });
   }
 
   answer(choice) {
@@ -145,24 +137,26 @@ export class GameScene extends Phaser.Scene {
   showEndScreen(title, detail) {
     this.inputLocked = true;
     const { centerX, centerY, width, height, titleY, detailY, buttonY, buttonWidth, buttonHeight } = LAYOUT.overlay;
-    this.track(this.add.rectangle(centerX, centerY, width, height, 0x000000, 0.82));
+    this.track(this.add.rectangle(centerX, centerY, width, height, 0x000000, 0.82)
+      .setDepth(DEPTH.OVERLAY));
     this.track(this.add.text(centerX, titleY, title, {
       fontFamily: 'Arial, sans-serif', fontSize: '58px', color: '#ffffff', fontStyle: 'bold',
-    }).setOrigin(0.5));
+    }).setOrigin(0.5).setDepth(DEPTH.OVERLAY).setStroke('#000000', 4));
     this.track(this.add.text(centerX, detailY, detail, {
       fontFamily: 'Arial, sans-serif', fontSize: '24px', color: '#ffffff', align: 'center',
       wordWrap: { width: 620 },
-    }).setOrigin(0.5));
+    }).setOrigin(0.5).setDepth(DEPTH.OVERLAY).setStroke('#000000', 4));
     const button = this.track(this.add.rectangle(centerX, buttonY, buttonWidth, buttonHeight, 0xeeeeee)
-      .setInteractive({ useHandCursor: true }));
+      .setDepth(DEPTH.OVERLAY).setInteractive({ useHandCursor: true }));
     this.track(this.add.text(centerX, buttonY, 'Tekrar', {
       fontFamily: 'Arial, sans-serif', fontSize: '36px', color: '#111111',
-    }).setOrigin(0.5));
+    }).setOrigin(0.5).setDepth(DEPTH.OVERLAY));
     button.on('pointerdown', () => this.scene.restart());
   }
 
   cleanup() {
     this.tweens.killAll();
+    this.room?.grainEvent.remove();
     this.builtObjects.forEach((object) => object.destroy());
     this.builtObjects = [];
   }
@@ -173,7 +167,9 @@ function buildRoom(scene) {
 }
 
 function pickAnomaly(previousId) {
-  let candidates = Object.entries(ANOMALIES).filter(([id]) => id !== previousId);
+  let candidates = Object.entries(ANOMALIES).filter(([, anomaly]) => anomaly.enabled);
+  const different = candidates.filter(([id]) => id !== previousId);
+  if (different.length) candidates = different;
   if (!candidates.length) candidates = Object.entries(ANOMALIES);
   const totalWeight = candidates.reduce((sum, [, anomaly]) => sum + anomaly.weight, 0);
   let choice = Math.random() * totalWeight;

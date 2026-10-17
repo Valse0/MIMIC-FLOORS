@@ -1,26 +1,27 @@
+export const GAME_W = 720;
+export const GAME_H = 1280;
+export const DARKNESS_BASE = 0.15;
+
+export const DEPTH = {
+  BG: 0,
+  DARKNESS: 10,
+  GRAIN: 11,
+  VIGNETTE: 12,
+  HUD: 20,
+  BUTTONS: 20,
+  FEEDBACK: 30,
+  OVERLAY: 40,
+};
+
 export const LAYOUT = {
-  width: 720,
-  height: 1280,
-  centerX: 360,
-  tutorial: { x: 360, y: 965, width: 620 },
-  feedback: { x: 360, y: 1030 },
-  hud: { floorX: 360, floorY: 42, heartXs: [270, 315, 360], heartY: 112, streakX: 550, streakY: 112 },
-  carpetStripe: { inset: 18, firstY: 30, spacing: 56, height: 10 },
-  paintingEyes: { leftX: 36, rightX: 64, y: 48, radius: 7 },
-  clockHand: { length: 24, width: 4 },
-  anomalyMotion: { flickerAlpha: 0.3, flickerDuration: 120, eyeDistance: 12, eyeDuration: 750, clockDuration: 1800 },
-  carpetStripeColors: { dark: 0x512020, light: 0xd6aa58 },
-  doorMotion: { openOffset: 65, duration: 400 },
-  frame: { x: 70, y: 180, width: 580, height: 720 },
-  backWall: { x: 78, y: 188, width: 564, height: 512 },
-  floor: { x: 78, y: 700, width: 564, height: 192 },
-  carpet: { x: 220, y: 735, width: 280, height: 140 },
-  light: { x: 360, y: 235, radius: 18, glowRadius: 48 },
-  painting: { x: 145, y: 405, size: 100 },
-  clock: { x: 560, y: 450, radius: 38 },
-  mainDoor: { x: 280, y: 380, width: 160, height: 300 },
-  extraDoor: { x: 530, y: 535, width: 90, height: 150 },
-  buttons: { y: 1100, width: 200, height: 80, leftX: 235, rightX: 485 },
+  width: GAME_W,
+  height: GAME_H,
+  centerX: GAME_W / 2,
+  centerY: GAME_H / 2,
+  tutorial: { x: 360, y: 1030, width: 660, height: 100 },
+  feedback: { x: 360, y: 900 },
+  hud: { floorX: 360, floorY: 42, heartXs: [270, 315, 360], heartY: 125, streakX: 550, streakY: 125 },
+  buttons: { y: 1160, width: 220, height: 80, leftX: 235, rightX: 485 },
   overlay: {
     centerX: 360, centerY: 640, width: 720, height: 1280,
     titleY: 470, detailY: 570, buttonY: 700, buttonWidth: 240, buttonHeight: 84,

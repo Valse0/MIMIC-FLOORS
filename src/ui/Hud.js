@@ -1,10 +1,10 @@
-import { LAYOUT } from '../config/layout.js';
+import { DEPTH, LAYOUT } from '../config/layout.js';
 
 export class Hud {
   constructor(scene) {
     this.scene = scene;
     const addText = (x, y, value, style) => scene.track(
-      scene.add.text(x, y, value, style).setOrigin(0.5),
+      scene.add.text(x, y, value, style).setOrigin(0.5).setDepth(DEPTH.HUD).setStroke('#000000', 4),
     );
     this.floor = addText(LAYOUT.hud.floorX, LAYOUT.hud.floorY, '', {
       fontFamily: 'Arial, sans-serif', fontSize: '38px', color: '#ffffff',

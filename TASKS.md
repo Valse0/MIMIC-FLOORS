@@ -113,7 +113,7 @@ Commit: `task 6: cleanup`
 - Kat sayısına göre zorluk artışı
 
 - 
-## [ ] GÖREV 7: Görsel temel (AI koridor görseli + atmosfer)
+## [x] GÖREV 7: Görsel temel (AI koridor görseli + atmosfer)
 Goal: replace the flat shape room with the real corridor image and add a code-only horror atmosphere. Layout/visual task. Game logic (lives, streak, floors, input lock) must NOT change behavior.
 
 ### Step 0: Housekeeping
