@@ -3,6 +3,7 @@ import { LAYOUT } from '../config/layout.js';
 import { FloorManager } from '../managers/FloorManager.js';
 import { LivesManager } from '../managers/LivesManager.js';
 import { Hud } from '../ui/Hud.js';
+import { ANOMALIES, resetRoom } from '../config/anomalies.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -15,6 +16,7 @@ export class GameScene extends Phaser.Scene {
     this.livesManager = new LivesManager();
     this.streak = 0;
     this.bestStreak = 0;
+    this.lastAnomalyId = null;
     this.inputLocked = true;
     this.room = buildRoom(this);
     this.hud = new Hud(this);
@@ -48,6 +50,12 @@ export class GameScene extends Phaser.Scene {
 
   showFloor() {
     const config = this.floorManager.currentConfig;
+    resetRoom(this.room);
+    if (config.isMimic) {
+      const anomalyId = config.anomalyId || pickAnomaly(this.lastAnomalyId);
+      ANOMALIES[anomalyId].apply(this, this.room);
+      this.lastAnomalyId = anomalyId;
+    }
     this.hud.updateFloor(config.floor);
     this.hud.updateLives(this.livesManager.lives);
     this.hud.updateStreak(this.streak);
@@ -119,7 +127,7 @@ export class GameScene extends Phaser.Scene {
 }
 
 function buildRoom(scene) {
-  const room = {};
+  const room = { tweens: [], carpetStripes: [], normalStripeColors: [] };
   const add = (object) => scene.track(object);
   const { corridor, floor, backWall, carpet, light, painting, clock, mainDoor, extraDoor, frame } = LAYOUT;
   add(scene.add.rectangle(floor.x + floor.width / 2, floor.y + floor.height / 2,
@@ -128,11 +136,15 @@ function buildRoom(scene) {
     backWall.width, backWall.height, 0x77716a));
   room.carpet = add(scene.add.rectangle(carpet.x + carpet.width / 2, carpet.y + carpet.height / 2,
     carpet.width, carpet.height, 0x7c2525));
-  [0, 1, 2].forEach((index) => add(scene.add.rectangle(
-    carpet.x + carpet.width / 2, carpet.y + LAYOUT.carpetStripe.firstY + index * LAYOUT.carpetStripe.spacing,
-    carpet.width - LAYOUT.carpetStripe.inset * 2, LAYOUT.carpetStripe.height,
-    index % 2 ? 0xd6aa58 : 0x512020,
-  )));
+  [0, 1, 2].forEach((index) => {
+    const color = index % 2 ? LAYOUT.carpetStripeColors.light : LAYOUT.carpetStripeColors.dark;
+    const stripe = add(scene.add.rectangle(
+      carpet.x + carpet.width / 2, carpet.y + LAYOUT.carpetStripe.firstY + index * LAYOUT.carpetStripe.spacing,
+      carpet.width - LAYOUT.carpetStripe.inset * 2, LAYOUT.carpetStripe.height, color,
+    ));
+    room.carpetStripes.push(stripe);
+    room.normalStripeColors.push(color);
+  });
   room.light = add(scene.add.circle(light.x, light.y, light.radius, 0xfff6c7));
   add(scene.add.rectangle(painting.x + painting.size / 2, painting.y + painting.size / 2,
     painting.size, painting.size, 0xe0bd36));
@@ -144,6 +156,7 @@ function buildRoom(scene) {
     add(scene.add.circle(painting.x + LAYOUT.paintingEyes.rightX, painting.y + LAYOUT.paintingEyes.y,
       LAYOUT.paintingEyes.radius, 0x111111)),
   ];
+  room.normalEyePositions = room.eyes.map(({ x, y }) => ({ x, y }));
   room.clock = add(scene.add.circle(clock.x, clock.y, clock.radius, 0xe9e1ce));
   room.clockHand = add(scene.add.line(clock.x, clock.y, 0, 0, 0, -LAYOUT.clockHand.length,
     0x222222, LAYOUT.clockHand.width));
@@ -158,4 +171,16 @@ function buildRoom(scene) {
   add(scene.add.rectangle(corridor.right, LAYOUT.corridorSides.y,
     LAYOUT.corridorSides.width, LAYOUT.corridorSides.height, 0x202020));
   return room;
+}
+
+function pickAnomaly(previousId) {
+  let candidates = Object.entries(ANOMALIES).filter(([id]) => id !== previousId);
+  if (!candidates.length) candidates = Object.entries(ANOMALIES);
+  const totalWeight = candidates.reduce((sum, [, anomaly]) => sum + anomaly.weight, 0);
+  let choice = Math.random() * totalWeight;
+  for (const [id, anomaly] of candidates) {
+    choice -= anomaly.weight;
+    if (choice < 0) return id;
+  }
+  return candidates[candidates.length - 1][0];
 }

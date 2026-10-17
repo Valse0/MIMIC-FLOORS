@@ -61,7 +61,7 @@ Commit: `task 3: game logic`
 
 ---
 
-## [ ] GÖREV 4: 5 anomali
+## [x] GÖREV 4: 5 anomali
 In `src/config/anomalies.js` export `ANOMALIES`, each entry `{ weight, apply(scene, room) }`. Each apply must register its tweens/objects so they are cleaned up on floor change.
 1. `flicker`: ceiling light alpha tween 0.3 <-> 1, yoyo, repeat -1, fast (120ms).
 2. `eyes`: painting eyes move left-right with tween (yoyo, repeat -1), slowly, creepy.

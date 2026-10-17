@@ -8,6 +8,8 @@ export const LAYOUT = {
   carpetStripe: { inset: 18, firstY: 65, spacing: 100, height: 12 },
   paintingEyes: { leftX: 40, rightX: 80, y: 52, radius: 8 },
   clockHand: { length: 30, width: 4 },
+  anomalyMotion: { flickerAlpha: 0.3, flickerDuration: 120, eyeDistance: 15, eyeDuration: 750, clockDuration: 1800 },
+  carpetStripeColors: { dark: 0x512020, light: 0xd6aa58 },
   corridorSides: { y: 555, width: 18, height: 810 },
   corridor: { left: 80, right: 640, top: 150, bottom: 960 },
   floor: { x: 80, y: 820, width: 560, height: 140 },
