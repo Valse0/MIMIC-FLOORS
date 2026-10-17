@@ -175,4 +175,50 @@ Goal: replace the flat shape room with the real corridor image and add a code-on
 List: image filename, pixel size, file size in MB, the final y/height of HUD strip, tutorial strip and buttons, any warning (large file, aspect mismatch), and what was left disabled.
 Commit: `task 7: image background and atmosphere`
 
+## [ ] GÖREV 8: His katmanı (ses, asansör kapıları, arayüz uyumu, canlılık)
+Feel pass only. Do NOT change game logic (lives, streak, floors, input lock, scoring).
+
+### Step 1: AudioManager (WebAudio only, all in try/catch)
+- Created/resumed on the "Başla" tap. If audio is unavailable the game must still work.
+- `startAmbience()`: two low detuned oscillators (about 50 Hz and 53 Hz, sine) with a very low gain (0.04) and a slow LFO on gain. Start once, never twice (guard with a flag). Stop on game over, restart on new run.
+- `startLightHum()`: 100 Hz sawtooth, gain 0.01 through a lowpass filter at 400 Hz.
+- `ding()`: elevator chime, two sine notes (880 Hz then 660 Hz), 300 ms total.
+- `doorSlide()`: filtered noise burst (noise buffer + lowpass), about 450 ms, gain 0.08.
+- `correct()` = soft high blip, `wrong()` = low sawtooth buzz 250 ms. Keep the existing ones if they exist, just route them through here.
+- `heartbeat()`: two short low thumps (60 Hz sine, 80 ms each, 150 ms apart), called when lives become 1, then every time a new floor starts while lives == 1. No loops or timers: trigger it from the floor start only.
+
+### Step 2: Elevator door transition (the main feel change)
+- Two full-height black rectangles (left and right halves, depth OVERLAY-5) cover the screen at floor start.
+- Sequence at every floor start: black screen -> `ding()` -> `doorSlide()` -> halves slide outward over 700 ms (Cubic.easeInOut) -> input unlocks only after they finish.
+- When an answer is given: halves slide closed over 500 ms with `doorSlide()`, then the next floor loads (use tween onComplete chain).
+- Door rectangles get a thin lighter vertical line on the inner edge (brushed metal feel). Fixed coordinates, no random.
+- First floor of a run uses the same opening. Game over / win overlays appear after doors are closed.
+- `resetRoom` must also reset door positions.
+
+### Step 3: UI style match
+- Remove green/red color coding. Both buttons: fill 0x000000 alpha 0.6, 2px border 0x8a7440 (aged brass), text color 0xc9b27a, serif font ("Georgia, serif"), bold. Slight text shadow. Pressed: alpha tween only.
+- Hearts: replace "♥" text with small drawn bulbs: circle radius 12, filled warm 0xffd27a when alive, outline-only 0x5a4a30 when lost. Spaced with fixed x coordinates, placed clearly under "Floor N".
+- All texts use the serif font. "Floor N" gets letterSpacing 4 and color 0xd8c9a0.
+- STREAK text: same brass color, no bright yellow.
+- Remove the visible dark strips behind HUD and tutorial text. Replace the top strip with a soft gradient texture (generated once, black alpha 0.7 at top fading to 0 at y=260). Tutorial text sits without a strip, with a 4px dark stroke, and fades in/out with a tween (alpha, 300 ms).
+- "DOĞRU"/"YANLIŞ" feedback: smaller, serif, fade in/out. Do not tint the whole screen except the existing red flash on wrong.
+- Add a warm color grade: full-screen rectangle color 0x3a2410, alpha 0.12, blendMode MULTIPLY, depth just above background (BG+1).
+
+### Step 4: Life
+- Breathing camera: tween camera scrollX between -4 and +4 and scrollY between -3 and +3, durations 3200 and 4100 ms, yoyo, repeat -1, Sine.easeInOut. Two separate tweens, killed in resetRoom and shutdown.
+- Dust: 18 small circles (radius 1-2, alpha 0.25), each at a FIXED start position from a constants array in layout.js, each drifting slowly upward with its own fixed duration (6000-11000 ms from the array), yoyo, repeat -1. Created once per scene start, destroyed on shutdown. No Math.random for positions.
+- Zoom from Task 7 stays.
+
+### Rules
+- All tweens/timers/sounds cleaned on scene shutdown. Restart 5 times: no stacked ambience, no duplicated doors/dust/hearts.
+- No new dependencies, no new files outside the structure (AudioManager, Atmosphere, Hud exist; add src/ui/Elevator.js for the doors and list it in AGENTS.md Structure).
+- Files under ~200 lines.
+- `npm run build` must pass.
+
+### Done when
+Menu -> Game: drone starts after "Başla", doors open with ding at each floor, doors close on answer, UI looks like one style (brass, serif, no green/red), screen gently breathes, dust floats. A full run still works exactly as before.
+
+### Report
+List files changed, how to test, anything uncertain.
+Commit: `task 8: feel pass`
 
