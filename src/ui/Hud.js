@@ -30,4 +30,9 @@ export class Hud {
   updateStreak(streak) {
     this.streak.setText(streak >= 2 ? `STREAK x${streak}` : '');
   }
+
+  popStreak(tweens) {
+    this.streak.setScale(1);
+    tweens.add({ targets: this.streak, scale: 1.3, duration: 180, yoyo: true, ease: 'Back.Out' });
+  }
 }

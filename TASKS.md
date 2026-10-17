@@ -77,7 +77,7 @@ Commit: `task 4: anomalies`
 
 ---
 
-## [ ] GÖREV 5: Ses ve juice
+## [x] GÖREV 5: Ses ve juice
 - `AudioManager` with WebAudio oscillators, created/resumed in MenuScene on "Başla" tap:
   - `ding()`: short high sine beep.
   - `buzz()`: low sawtooth ~250ms.

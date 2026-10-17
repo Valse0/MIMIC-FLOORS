@@ -70,4 +70,6 @@ export function resetRoom(room) {
   room.carpetStripes.forEach((stripe, index) => stripe.setFillStyle(room.normalStripeColors[index]));
   room.clockHand.setAngle(0);
   room.extraDoor.setVisible(false);
+  room.mainDoor.setPosition(room.doorClosedPositions.left.x, room.doorClosedPositions.left.y);
+  room.doorRight.setPosition(room.doorClosedPositions.right.x, room.doorClosedPositions.right.y);
 }

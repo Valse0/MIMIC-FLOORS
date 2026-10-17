@@ -3,6 +3,7 @@ import { LAYOUT } from '../config/layout.js';
 import { FloorManager } from '../managers/FloorManager.js';
 import { LivesManager } from '../managers/LivesManager.js';
 import { Hud } from '../ui/Hud.js';
+import { createRoom } from '../ui/RoomBuilder.js';
 import { ANOMALIES, resetRoom } from '../config/anomalies.js';
 
 export class GameScene extends Phaser.Scene {
@@ -17,6 +18,7 @@ export class GameScene extends Phaser.Scene {
     this.streak = 0;
     this.bestStreak = 0;
     this.lastAnomalyId = null;
+    this.audioManager = this.registry.get('audioManager');
     this.inputLocked = true;
     this.room = buildRoom(this);
     this.hud = new Hud(this);
@@ -51,6 +53,7 @@ export class GameScene extends Phaser.Scene {
   showFloor() {
     const config = this.floorManager.currentConfig;
     resetRoom(this.room);
+    this.inputLocked = true;
     if (config.isMimic) {
       const anomalyId = config.anomalyId || pickAnomaly(this.lastAnomalyId);
       ANOMALIES[anomalyId].apply(this, this.room);
@@ -61,7 +64,33 @@ export class GameScene extends Phaser.Scene {
     this.hud.updateStreak(this.streak);
     this.tutorialLabel.setText(config.tutorialText);
     this.feedbackLabel.setText('').setScale(1);
-    this.inputLocked = false;
+    this.openDoors();
+  }
+
+  openDoors() {
+    let openedPanels = 0;
+    const onOpened = () => {
+      openedPanels += 1;
+      if (openedPanels === 2) this.inputLocked = false;
+    };
+    const { duration } = LAYOUT.doorMotion;
+    this.tweens.add({ targets: this.room.mainDoor, x: this.room.doorOpenPositions.left.x,
+      duration, ease: 'Sine.easeOut', onComplete: onOpened });
+    this.tweens.add({ targets: this.room.doorRight, x: this.room.doorOpenPositions.right.x,
+      duration, ease: 'Sine.easeOut', onComplete: onOpened });
+  }
+
+  closeDoors(onClosed) {
+    let closedPanels = 0;
+    const onClosedPanel = () => {
+      closedPanels += 1;
+      if (closedPanels === 2) onClosed();
+    };
+    const { duration } = LAYOUT.doorMotion;
+    this.tweens.add({ targets: this.room.mainDoor, x: this.room.doorClosedPositions.left.x,
+      duration, ease: 'Sine.easeIn', onComplete: onClosedPanel });
+    this.tweens.add({ targets: this.room.doorRight, x: this.room.doorClosedPositions.right.x,
+      duration, ease: 'Sine.easeIn', onComplete: onClosedPanel });
   }
 
   answer(choice) {
@@ -74,16 +103,29 @@ export class GameScene extends Phaser.Scene {
       this.streak += 1;
       this.bestStreak = Math.max(this.bestStreak, this.streak);
       this.feedbackLabel.setText('DOĞRU').setColor('#42d66b');
+      this.audioManager?.ding();
+      this.cameras.main.shake(100, 0.003);
+      if ([3, 5, 10].includes(this.streak)) {
+        this.cameras.main.flash(130, 255, 225, 80);
+        this.hud.popStreak(this.tweens);
+      }
     } else {
       this.streak = 0;
       this.livesManager.loseLife();
       this.hud.updateLives(this.livesManager.lives);
       this.feedbackLabel.setText('YANLIŞ').setColor('#f04c4c');
+      this.audioManager?.buzz();
+      this.cameras.main.flash(150, 255, 0, 0);
+      try {
+        if (navigator.vibrate) navigator.vibrate(100);
+      } catch {
+        // Vibration is optional and must not interrupt gameplay.
+      }
     }
     this.hud.updateStreak(this.streak);
     this.tweens.add({
       targets: this.feedbackLabel, scale: 1.15, duration: 160, yoyo: true,
-      onComplete: () => this.finishFloor(config.floor),
+      onComplete: () => this.closeDoors(() => this.finishFloor(config.floor)),
     });
   }
 
@@ -127,50 +169,7 @@ export class GameScene extends Phaser.Scene {
 }
 
 function buildRoom(scene) {
-  const room = { tweens: [], carpetStripes: [], normalStripeColors: [] };
-  const add = (object) => scene.track(object);
-  const { corridor, floor, backWall, carpet, light, painting, clock, mainDoor, extraDoor, frame } = LAYOUT;
-  add(scene.add.rectangle(floor.x + floor.width / 2, floor.y + floor.height / 2,
-    floor.width, floor.height, 0x333333));
-  add(scene.add.rectangle(backWall.x + backWall.width / 2, backWall.y + backWall.height / 2,
-    backWall.width, backWall.height, 0x77716a));
-  room.carpet = add(scene.add.rectangle(carpet.x + carpet.width / 2, carpet.y + carpet.height / 2,
-    carpet.width, carpet.height, 0x7c2525));
-  [0, 1, 2].forEach((index) => {
-    const color = index % 2 ? LAYOUT.carpetStripeColors.light : LAYOUT.carpetStripeColors.dark;
-    const stripe = add(scene.add.rectangle(
-      carpet.x + carpet.width / 2, carpet.y + LAYOUT.carpetStripe.firstY + index * LAYOUT.carpetStripe.spacing,
-      carpet.width - LAYOUT.carpetStripe.inset * 2, LAYOUT.carpetStripe.height, color,
-    ));
-    room.carpetStripes.push(stripe);
-    room.normalStripeColors.push(color);
-  });
-  room.light = add(scene.add.circle(light.x, light.y, light.radius, 0xfff6c7));
-  add(scene.add.rectangle(painting.x + painting.size / 2, painting.y + painting.size / 2,
-    painting.size, painting.size, 0xe0bd36));
-  room.painting = add(scene.add.rectangle(painting.x + painting.size / 2, painting.y + painting.size / 2,
-    painting.size - 18, painting.size - 18, 0x987a26));
-  room.eyes = [
-    add(scene.add.circle(painting.x + LAYOUT.paintingEyes.leftX, painting.y + LAYOUT.paintingEyes.y,
-      LAYOUT.paintingEyes.radius, 0x111111)),
-    add(scene.add.circle(painting.x + LAYOUT.paintingEyes.rightX, painting.y + LAYOUT.paintingEyes.y,
-      LAYOUT.paintingEyes.radius, 0x111111)),
-  ];
-  room.normalEyePositions = room.eyes.map(({ x, y }) => ({ x, y }));
-  room.clock = add(scene.add.circle(clock.x, clock.y, clock.radius, 0xe9e1ce));
-  room.clockHand = add(scene.add.line(clock.x, clock.y, 0, 0, 0, -LAYOUT.clockHand.length,
-    0x222222, LAYOUT.clockHand.width));
-  room.extraDoor = add(scene.add.rectangle(extraDoor.x + extraDoor.width / 2,
-    extraDoor.y + extraDoor.height / 2, extraDoor.width, extraDoor.height, 0x704326).setVisible(false));
-  room.mainDoor = add(scene.add.rectangle(mainDoor.x + mainDoor.width / 2,
-    mainDoor.y + mainDoor.height / 2, mainDoor.width, mainDoor.height, 0x81512e));
-  add(scene.add.rectangle(frame.x + frame.width / 2, frame.y + frame.height / 2,
-    frame.width, frame.height, 0x111111, 0).setStrokeStyle(14, 0x202020));
-  add(scene.add.rectangle(corridor.left, LAYOUT.corridorSides.y,
-    LAYOUT.corridorSides.width, LAYOUT.corridorSides.height, 0x202020));
-  add(scene.add.rectangle(corridor.right, LAYOUT.corridorSides.y,
-    LAYOUT.corridorSides.width, LAYOUT.corridorSides.height, 0x202020));
-  return room;
+  return createRoom(scene);
 }
 
 function pickAnomaly(previousId) {

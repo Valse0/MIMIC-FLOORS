@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { AudioManager } from '../managers/AudioManager.js';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -20,6 +21,11 @@ export class MenuScene extends Phaser.Scene {
       color: '#111111',
     }).setOrigin(0.5);
 
-    button.on('pointerdown', () => this.scene.start('GameScene'));
+    button.on('pointerdown', () => {
+      const audioManager = new AudioManager();
+      audioManager.resume();
+      this.registry.set('audioManager', audioManager);
+      this.scene.start('GameScene');
+    });
   }
 }
