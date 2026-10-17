@@ -22,9 +22,10 @@ Portrait mobile game (720x1280). Player rides an elevator through floors. Each f
 10. Audio starts only after the first user tap (MenuScene "Başla" button).
 
 ## Structure
-src/main.js, src/config/{gameConfig,floorConfigs,anomalies}.js,
+src/main.js, src/config/{gameConfig,floorConfigs,anomalies,layout}.js,
 src/scenes/{BootScene,MenuScene,GameScene}.js,
-src/managers/{FloorManager,LivesManager,AudioManager}.js, src/ui/Hud.js
+src/managers/{FloorManager,LivesManager,AudioManager}.js,
+src/ui/{Hud,RoomBuilder}.js
 Do not create files outside this structure without asking.
 
 ## Phaser config

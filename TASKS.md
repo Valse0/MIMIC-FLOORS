@@ -91,7 +91,7 @@ Commit: `task 5: audio and juice`
 
 ---
 
-## [ ] GÖREV 6: Temizlik ve hata taraması
+## [x] GÖREV 6: Temizlik ve hata taraması
 Do not add features. Only verify and fix:
 - Restart the scene 5 times in a row: no duplicated HUD, buttons, tweens, or sounds.
 - Rapidly tap ÇIK/KAPAT: only one answer is processed per floor.
