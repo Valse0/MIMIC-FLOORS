@@ -222,3 +222,58 @@ Menu -> Game: drone starts after "Başla", doors open with ding at each floor, d
 List files changed, how to test, anything uncertain.
 Commit: `task 8: feel pass`
 
+## [ ] GÖREV 9: Anomali avı (görünür anomaliler, süre baskısı, buton gecikmesi)
+Gameplay pass. Keep lives/streak/floor/input-lock logic intact, only extend it. Do Task 8b first if it is still `[ ]`.
+
+### Step 1: World container (so overlays follow the photo)
+- Put the background image and all anomaly overlays inside ONE Phaser Container `world` at (360, 640). The Task 7 slow zoom tween now scales `world` (from baseScale to baseScale*1.04), not the image alone. Reset in `resetRoom`.
+- Overlay positions are defined in `layout.js` as fractions of the image: `{ nx, ny }` where nx, ny in 0..1 (0,0 = top-left of the image). Convert with a helper `toWorld(nx, ny)` using the texture size so they stay attached to the photo at any scale. No Math.random for positions.
+- Initial slots (adjust after looking at the image; Codex must open the image and verify each slot visually, then report the final values):
+  - `PAINTING`: left wall painting, about nx 0.06, ny 0.34
+  - `CLOCK`: right wall clock, about nx 0.96, ny 0.33
+  - `DOOR_RIGHT`: nearest right door, about nx 0.82, ny 0.55
+  - `FAR_END`: vanishing point at the corridor end, about nx 0.5, ny 0.47
+- Add a debug helper: if the URL has `?debug=1`, draw a small magenta cross at each slot so positions can be checked on the phone. Off by default.
+
+### Step 2: Five anomalies in `anomalies.js`
+Each entry: `{ enabled: true, weight, apply(scene, room), sound }`. Everything an anomaly creates must be tracked in `room.anomalyObjects` and destroyed by `resetRoom` (with its tweens). Re-enable all five.
+1. `flicker` (exists): darkness alpha tween as in Task 7, plus `audio.buzz()` once when it starts.
+2. `eyes`: two small pale circles (radius ~5, color 0xe8e0c0, alpha 0 -> 0.9 fade in over 800 ms) inside the PAINTING slot, 24 px apart, slowly sliding left-right together (yoyo, repeat -1, 1800 ms). No sound.
+3. `clockGlow`: a red circle (color 0xaa1111, radius ~40, alpha 0.0 -> 0.35, yoyo, repeat -1, 900 ms) behind/over the CLOCK slot, blendMode ADD. No sound.
+4. `doorAjar`: a thin vertical warm-light rectangle (color 0xffc870, width 3, height ~220, alpha 0.8) at the DOOR_RIGHT edge whose width tweens 3 -> 14 over 1200 ms, then stays. Call `audio.doorSlide()` once at a low level.
+5. `figure`: a dark silhouette at FAR_END: generate ONCE a canvas texture `figure` (guard with exists-check): a vertical soft-edged dark shape, 36x110 px, head circle + body, black, soft alpha edges. Show it at FAR_END with alpha 0 -> 0.85 over 1500 ms. No tween loop. Call `audio.heartbeat()` once when it appears.
+- Selection: random by weight, never the same twice in a row (allow repeat only if one enabled).
+- Add `MIMIC_CHANCE = 0.35` constant in floorConfigs (temporary, for testing; the design target is 0.20, tune later).
+- Floor 1: NORMAL. Floor 2: MIMIC with `figure`.
+
+### Step 3: Button delay and labels
+- Rename button labels: "NORMAL" (was ÇIK) and "ANOMALİ" (was KAPAT). Answer rules unchanged: NORMAL on normal floor = correct, ANOMALİ on mimic floor = correct.
+- At each floor start the buttons are hidden (alpha 0, not interactive). After the elevator doors finish opening, wait 1000 ms (tween delay, not setTimeout), then fade buttons in over 300 ms and only then set interactive and unlock input.
+- Update tutorial texts in floorConfigs:
+  - Floor 1: "Bu koridor NORMAL. Dikkatle bak, sonra NORMAL'e bas."
+  - Floor 2: "Bir şey var. Koridorun sonuna bak. ANOMALİ'ye bas."
+- Update all other UI strings that mention ÇIK/KAPAT.
+
+### Step 4: Timer (single mechanism)
+- `timeLimitMs: 7000` in floorConfigs (Floor 1 and 2 tutorial floors: no timer, `timeLimitMs: 0`).
+- A thin bar (height 6, brass color 0x8a7440, width 560, centered at y 1100) that shrinks with ONE tween (scaleX 1 -> 0, linear, duration = timeLimitMs). Starts exactly when the buttons become interactive.
+- Tween onComplete = timeout: counts as a wrong answer through the SAME answer function (no duplicated logic), guarded by `inputLocked`.
+- When the player answers: stop the tween immediately, hide the bar.
+- When the last 2 seconds remain, the bar color becomes dim red 0x8a3030 (tween `tint`-free: set fillColor in an onUpdate check with a boolean so it runs once).
+- Timer must never run during the door transitions, game over or win overlays. Kill it in `resetRoom` and shutdown.
+
+### Step 5: Test helper
+- URL param `?anomaly=<id>` forces that anomaly on every mimic floor. `?floor=<n>` starts the run at that floor. Parsed once in GameScene.create. Never active without the param.
+
+### Rules
+- No physics, no timers other than the tween described, no new dependencies.
+- Restart 5 times: no stacked anomaly objects, bar, or tweens.
+- Files under ~200 lines. Put anomaly overlay helpers in `src/ui/AnomalyFx.js` if needed, and list it in AGENTS.md Structure.
+- `npm run build` passes.
+
+### Done when
+Floor 2 shows a dark figure at the corridor end and the player must press ANOMALİ. Mimic floors show one of the five anomalies clearly; normal floors are fully clean. Buttons appear 1 s after the doors open. Floors 3+ have a 7 s bar and timeout counts as wrong. A full run (correct/wrong/timeout/game over/restart) works.
+
+### Report
+List files changed, the final nx/ny of each slot, how to test with `?anomaly=figure` and `?debug=1`, anything uncertain.
+Commit: `task 9: anomaly hunt`
