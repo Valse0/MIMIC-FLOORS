@@ -24,7 +24,7 @@ Commit: `task 1: skeleton`
 
 ---
 
-## [ ] GÖREV 2: Statik koridor (mantık yok)
+## [x] GÖREV 2: Statik koridor (mantık yok)
 Draw the corridor in GameScene with shapes only, all at fixed coordinates defined as constants in `src/config/layout.js`.
 - Elements: floor (dark gray rect), back wall, carpet (rect with 3 stripes), ceiling light (white circle), painting (yellow square) with two eyes (black circles), wall clock (circle + one hand line), main door (brown rect), extra door (second brown rect, hidden by default), elevator frame around the view.
 - Build them in one function `buildRoom(scene)` that returns an object:
